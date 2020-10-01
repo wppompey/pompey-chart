@@ -53,15 +53,29 @@ function pompey_chart_shortcode( $atts, $content, $tag ) {
 	$html = "Pompey Chart";
 	$lines = pompey_chart_data( $atts, $content );
 	$height = isset( $atts['height']) ? $atts['height'] : "450px";
+
 	$html .= pompey_chart( $lines, $height );
 	return $html;
 }
 
 function pompey_chart_data( $atts, $content ) {
 	if ( $content ) {
-		$lines = $content;
+		$content = str_replace( '<br />', '', $content );
+		$lines = explode( "\n", $content );
+		//print_r( $lines );
+		//gob();
+
 	} else {
-		$lines =file( 'https://www.andrew-leonard.co.uk/Chart/meetup-stats.csv', FILE_IGNORE_NEW_LINES );
+
+		$filename = dirname( __FILE__);
+
+		$filename .= '/meetup-stats.csv';
+		//echo $filename;
+		if ( !file_exists( $filename) ) {
+			$filename='https://www.andrew-leonard.co.uk/Chart/meetup-stats.csv';
+		}
+		$lines=file( $filename,FILE_IGNORE_NEW_LINES );
+
 	}
 	return $lines;
 }
@@ -144,7 +158,7 @@ function pompey_chart_javascript( $Date, $series1, $series2, $series3, $height =
 	$Data .= ']]},';
 	$Data .= "{fullWidth:true,width:'100%',height:'";
 	$Data .= $height;
-	$Data .= "',chartPadding:{right:50,left:50},";
+	$Data .= "',chartPadding:{right:0,left:0},";
 	$Data .= "plugins:[Chartist.plugins.tooltip(),Chartist.plugins.legend({legendNames:['Attendees','Joined','Members'],})]});";
 	return $Data;
 }
