@@ -24,9 +24,10 @@ function pompey_chart_init() {
 
 
 function pompey_chart_enqueue_scripts() {
+	wp_enqueue_style( 'chartist-style', 'https://cdnjs.cloudflare.com/ajax/libs/chartist/0.10.1/chartist.min.css' );
 	wp_enqueue_style( 'chart-style', 'https://www.andrew-leonard.co.uk/Chart/Tooltip.css' );
 	wp_enqueue_style( 'chart-extra-style', 'https://www.andrew-leonard.co.uk/Chart/Extra.css' );
-	wp_enqueue_style( 'chartist-style', 'https://cdnjs.cloudflare.com/ajax/libs/chartist/0.10.1/chartist.min.css' );
+
 
 	//wp_enqueue_script('leaflet-script', 'https://unpkg.com/leaflet@1.0.3/dist/leaflet.js' );
 	wp_enqueue_script('chartist-script', 'https://cdnjs.cloudflare.com/ajax/libs/chartist/0.10.1/chartist.min.js' );
