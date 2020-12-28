@@ -19,13 +19,34 @@ add_action( 'init', 'pompey_chart_init' );
 
 function pompey_chart_init() {
 	add_shortcode( 'pompey_chart', 'pompey_chart_shortcode');
-	add_action( 'wp_enqueue_scripts', 'pompey_chart_enqueue_scripts' );
+	add_action( 'wp_enqueue_scripts', 'pompey_chart_enqueue_local_scripts' );
 }
+
+/**
+ * Chartist and its plugins
+ * - https://github.com/gionkunz/chartist-js/
+ * - https://github.com/tmmdata/chartist-plugin-tooltip
+ * - https://github.com/CodeYellowBV/chartist-plugin-legend
+ */
+function pompey_chart_enqueue_local_scripts() {
+	$path = plugin_dir_url( __FILE__ );
+
+	wp_enqueue_style( 'chartist-style', $path . '/dist/chartist.min.css' );
+	wp_enqueue_style( 'chart-style', $path . '/Chart/Tooltip.css' );
+	wp_enqueue_style( 'chart-extra-style', $path . '/Chart/Extra.css' );
+
+	wp_enqueue_script('chartist-script', $path . '/dist/chartist.min.js' );
+	wp_enqueue_script('chartist-tooltip-script', $path . '/dist/chartist-plugin-tooltip.js' );
+	wp_enqueue_script('chartist-legend-script', $path . '/dist/chartist-plugin-legend.js' );
+}
+
+
 
 
 function pompey_chart_enqueue_scripts() {
 	wp_enqueue_style( 'chartist-style', 'https://cdnjs.cloudflare.com/ajax/libs/chartist/0.10.1/chartist.min.css' );
-	wp_enqueue_style( 'chart-style', 'https://www.andrew-leonard.co.uk/Chart/Tooltip.css' );
+	// __DIR__ /
+	wp_enqueue_style( 'chart-style', plugin_dir_url( __FILE__ ) . '/Chart/Tooltip.css' );
 	wp_enqueue_style( 'chart-extra-style', 'https://www.andrew-leonard.co.uk/Chart/Extra.css' );
 
 
@@ -50,6 +71,12 @@ function pompey_chart_enqueue_scripts() {
  *
  */
 function pompey_chart_shortcode( $atts, $content, $tag ) {
+	//pompey_chart_enqueue_local_scripts();
+
+	// To support multiple charts in the post content
+	// we need to pass a unique ID
+
+
 	$html = "Pompey Chart";
 	$lines = pompey_chart_data( $atts, $content );
 	$height = isset( $atts['height']) ? $atts['height'] : "450px";
@@ -80,14 +107,29 @@ function pompey_chart_data( $atts, $content ) {
 	return $lines;
 }
 
+/**
+ * To support multiple charts in the post content
+ * we need to set a unique ID for each chart
 
+ * @param $lines
+ * @param $height
+ *
+ * @return string
+ */
 function pompey_chart( $lines, $height ) {
 
 	//$html =count( $lines );
-	$html = "<div class=\"ct-chart\"></div>";
-	$script = pompey_chart_process( $lines, $height );
+	$id = pompey_chart_id();
+	$html = "<div class=\"ct-chart\" id=\"$id\"></div>";
+	$script = pompey_chart_process( $id, $lines, $height );
 	$html .= pompey_chart_inline_script(  $script );
 	return $html;
+}
+
+function pompey_chart_id() {
+	static $id = 0;
+	$id++;
+	return 'chart' . $id;
 }
 
 function pompey_chart_inline_script( $script  ) {
@@ -97,7 +139,7 @@ function pompey_chart_inline_script( $script  ) {
 	return $html;
 }
 
-function pompey_chart_process( $lines, $height ) {
+function pompey_chart_process( $id, $lines, $height ) {
 
 	$Date   ="";
 	$null   ="";
@@ -140,13 +182,13 @@ function pompey_chart_process( $lines, $height ) {
 			}
 		}
 	}
-	$data = pompey_chart_javascript( $Date, $series1, $series2, $series3, $height );
+	$data = pompey_chart_javascript( $id, $Date, $series1, $series2, $series3, $height );
 	return $data;
 }
 
-function pompey_chart_javascript( $Date, $series1, $series2, $series3, $height = '500px') {
+function pompey_chart_javascript( $id, $Date, $series1, $series2, $series3, $height = '500px') {
 
-	$Data = "var chart=new Chartist.Line('.ct-chart',{labels:[";
+	$Data = "var chart=new Chartist.Line( '#$id',{labels:[";
 	$Data .= $Date;
 	$Data .=  '],';
 	$Data .= 'series:[[';
