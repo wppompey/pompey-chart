@@ -3,7 +3,7 @@
  * Plugin Name:     Pompey Chart
  * Plugin URI: 		https://github.com/wppompey/pompey-chart.git
  * Description:     Displays a chart of WordPress Portsmouth Meetup attendees over time
- * Version:         0.1.0
+ * Version:         0.2.0
  * Author:          andrewleonard, bobbingwide
  * Author URI: 		https://wp-pompey.org.uk
  * License:         GPL-2.0-or-later
@@ -99,11 +99,18 @@ function pompey_chart_chart_shortcode( $atts, $content, $tag ) {
 	$id  =pompey_chart_id();
 	$html= "<div class=\"ct-chart\" id=\"$id\"></div>";
 	// Data: Labels and Series
-	$script = pompey_chart_data_label_series( $series, $atts );
-	$jsonlegend = pompey_chart_json_legend( $legend );
-	$script .= pompey_chart_options( $atts, $jsonlegend );
-	$script .= pompey_chart_type();
-	$script .= "'#$id',data,options );";
+	if ( $atts['type'] !== 'Pie') {
+		$script = pompey_chart_data_label_series( $series, $atts );
+		$jsonlegend=pompey_chart_json_legend( $legend );
+
+		$script.=pompey_chart_options( $atts, $jsonlegend );
+		$script.=pompey_chart_type( $atts['type'] );
+		$script.="'#$id',data,options );";
+	} else {
+		$script = 'var data = { series: [' . implode( ',', $series[0] ) . ']};';
+		$script.=pompey_chart_type( $atts['type'] );
+		$script .= "'#$id',data );";
+	}
 	$html .=  pompey_chart_inline_script( $script );
 
 	// Parameters
@@ -114,10 +121,36 @@ function pompey_chart_chart_shortcode( $atts, $content, $tag ) {
 }
 
 function pompey_chart_default_atts( $atts ) {
+	$atts['type'] = isset( $atts['type'] ) ? $atts['type'] : 'Line';
 	$atts['title']=isset( $atts['title'] ) ? $atts['title'] : 'Chart';
 	$atts['height'] = isset( $atts['height'] ) ? $atts['height'] : '450px';
+
+	$atts['type'] = pompey_chart_validate_type( $atts['type'] );
 	return $atts;
 
+}
+
+function pompey_chart_validate_type( $type ) {
+	//echo $type;
+	switch ( $type ) {
+		case 'Line':
+		case 'Bar':
+		case 'Pie':
+			break;
+		case 'line':
+			$type='Line';
+			break;
+		case 'bar':
+			$type='Bar';
+			break;
+		case 'pie':
+			$type='Pie';
+			break;
+		default:
+			$type='Line';
+	}
+	//echo $type;
+	return $type;
 }
 
 /**
@@ -137,12 +170,17 @@ function pompey_chart_default_atts( $atts ) {
 
 function pompey_chart_data_label_series(  $series, $atts ) {
 	// Assume tooltips are the last?
+
 	$tooltips = array_pop( $series );
 	$data = new stdClass();
-	$data->labels = array_shift( $series );
-	$data->series = [];
-	foreach (  $series as $index => $seriesn ) {
-		$data->series[] = pompey_chart_data_seriesn( $seriesn, $tooltips );
+	if ( 'Line' === $atts['type'] ) {
+		$data->labels = array_shift( $series );
+		$data->series = [];
+		foreach (  $series as $index => $seriesn ) {
+			$data->series[] = pompey_chart_data_seriesn( $seriesn, $tooltips );
+		}
+	} else {
+		$data->series = $series[0];
 	}
 	$json = json_encode( $data );
 
@@ -185,11 +223,16 @@ function pompey_chart_options( $atts, $jsonlegend ) {
 	$options->chartPadding = new StdClass();
 	$options->chartPadding->right = 80;
 	$options->chartPadding->left = 40;
-	$options->plugins            = 'repl_plugins';
+	//echo print_r( $atts );
+	if ( $atts['type'] !== 'Pie') {
+		$options->plugins='repl_plugins';
+	}
 	$json                        =json_encode( $options, JSON_UNESCAPED_SLASHES );
-	$plugins       ='Chartist.plugins.tooltip(),';
-	$plugins       .= 'Chartist.plugins.legend(' . $jsonlegend . ')';
-	$json = str_replace( '"repl_plugins"', "[$plugins]", $json);
+	if ( $atts['type'] !== 'Pie') {
+		$plugins='Chartist.plugins.tooltip(),';
+		$plugins.='Chartist.plugins.legend(' . $jsonlegend . ')';
+		$json   =str_replace( '"repl_plugins"', "[$plugins]", $json );
+	}
 	$script                      ="var options = $json;\n";
 	//echo $script;
 
