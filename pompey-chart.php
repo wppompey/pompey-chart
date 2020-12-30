@@ -29,6 +29,8 @@ function pompey_chart_init() {
  * - https://github.com/tmmdata/chartist-plugin-tooltip
  * - https://github.com/CodeYellowBV/chartist-plugin-legend
  *
+ * https://cdnjs.cloudflare.com/ajax/libs/chartist/0.11.4/chartist.min.js
+ * <script src="https://cdnjs.cloudflare.com/ajax/libs/chartist/0.11.4/chartist.min.js" integrity="sha512-9rxMbTkN9JcgG5euudGbdIbhFZ7KGyAuVomdQDI9qXfPply9BJh0iqA7E/moLCatH2JD4xBGHwV6ezBkCpnjRQ==" crossorigin="anonymous"></script>
  * @TODO Tooltips don't work when enqueued locally. Probably a versioning problem.
  * Need to find out what source Andrew used that pointed him to cloudflare and unpkg.
  */
@@ -88,7 +90,7 @@ function pompey_chart_chart_shortcode( $atts, $content, $tag ) {
 		$content=str_replace( '<br />', '', $content );
 		$lines  =explode( "\n", $content );
 	}
-	$legend = $lines[0];
+	//$legend = $lines[0];
 
 	$legend=array_shift( $lines );
 
@@ -107,9 +109,11 @@ function pompey_chart_chart_shortcode( $atts, $content, $tag ) {
 		$script.=pompey_chart_type( $atts['type'] );
 		$script.="'#$id',data,options );";
 	} else {
-		$script = 'var data = { series: [' . implode( ',', $series[0] ) . ']};';
+		//$script = 'var data = { series: [' . implode( ',', $series[0] ) . ']};';
+		$script = pompey_chart_data_label_series( $series, $atts );
+		$script.=pompey_chart_options( $atts, null );
 		$script.=pompey_chart_type( $atts['type'] );
-		$script .= "'#$id',data );";
+		$script .= "'#$id',data, options );";
 	}
 	$html .=  pompey_chart_inline_script( $script );
 
@@ -121,11 +125,21 @@ function pompey_chart_chart_shortcode( $atts, $content, $tag ) {
 }
 
 function pompey_chart_default_atts( $atts ) {
+	if ( empty( $atts ) ) {
+		$atts = [];
+
+	}
+	//echo "before";	print_r( $atts );
+
 	$atts['type'] = isset( $atts['type'] ) ? $atts['type'] : 'Line';
 	$atts['title']=isset( $atts['title'] ) ? $atts['title'] : 'Chart';
 	$atts['height'] = isset( $atts['height'] ) ? $atts['height'] : '450px';
 
 	$atts['type'] = pompey_chart_validate_type( $atts['type'] );
+	$atts['tooltips'] = isset( $atts['tooltips']) ? true : false;
+	$atts['stackBars'] = isset( $atts['stackbars']) ? true : false;
+	//echo "after";
+	//print_r( $atts );
 	return $atts;
 
 }
@@ -169,18 +183,28 @@ function pompey_chart_validate_type( $type ) {
  */
 
 function pompey_chart_data_label_series(  $series, $atts ) {
-	// Assume tooltips are the last?
-
-	$tooltips = array_pop( $series );
+	// If tooltips are required these are the last column.
+	// Otherwise we use the same as the legend.
+	if ( $atts['tooltips'] ) {
+		$tooltips=array_pop( $series );
+	} else {
+		$tooltips = null;
+	}
 	$data = new stdClass();
-	if ( 'Line' === $atts['type'] ) {
+	// Line and Bar
+	if ( 'Pie' !== $atts['type'] ) {
 		$data->labels = array_shift( $series );
 		$data->series = [];
-		foreach (  $series as $index => $seriesn ) {
-			$data->series[] = pompey_chart_data_seriesn( $seriesn, $tooltips );
+		foreach ( $series as $index=>$seriesn ) {
+			if ( $tooltips ) {
+				$data->series[]=pompey_chart_data_seriesn( $seriesn, $tooltips );
+			} else {
+				$data->series[] = $seriesn;
+			}
 		}
 	} else {
-		$data->series = $series[0];
+		$data->labels = $series[0];
+		$data->series = $series[1];
 	}
 	$json = json_encode( $data );
 
@@ -215,17 +239,26 @@ $Data .= "plugins:[Chartist.plugins.tooltip(),Chartist.plugins.legend({legendNam
  * @return string
  */
 
-function pompey_chart_options( $atts, $jsonlegend ) {
+function pompey_chart_options( $atts, $jsonlegend=null ) {
 	$options                     =new StdClass();
-	$options->fullWidth          =true;
-	$options->width              ='100%';
-	$options->height             =$atts['height'];
-	$options->chartPadding = new StdClass();
-	$options->chartPadding->right = 80;
-	$options->chartPadding->left = 40;
+
 	//echo print_r( $atts );
 	if ( $atts['type'] !== 'Pie') {
+		$options->fullWidth          =true;
+		$options->width              ='100%';
+		$options->height             =$atts['height'];
+		$options->chartPadding = new StdClass();
+		$options->chartPadding->right = 80;
+		$options->chartPadding->left = 40;
 		$options->plugins='repl_plugins';
+		$options->stackBars = $atts['stackBars'];
+	} else {
+		//$options->donut = true;
+		// $options->donutWidth = 60;
+		$options->startAngle = 270;
+		$options->showLabel = true;
+		//$options->chartPadding = 300;
+		$options->labelDirection = 'explode';
 	}
 	$json                        =json_encode( $options, JSON_UNESCAPED_SLASHES );
 	if ( $atts['type'] !== 'Pie') {
