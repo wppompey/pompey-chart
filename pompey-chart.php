@@ -89,6 +89,8 @@ function pompey_chart_chart_shortcode( $atts, $content, $tag ) {
 		$content=trim( $content );
 		$content=str_replace( '<br />', '', $content );
 		$lines  =explode( "\n", $content );
+	} else {
+		return "No content?";
 	}
 	//$legend = $lines[0];
 
@@ -99,7 +101,8 @@ function pompey_chart_chart_shortcode( $atts, $content, $tag ) {
 	bw_trace2( $series, "series" );
 	//print_r( $series );
 	$id  =pompey_chart_id();
-	$html= "<div class=\"ct-chart\" id=\"$id\"></div>";
+	$class = $atts['class'];
+	$html= "<div class=\"ct-chart $class\" id=\"$id\"></div>";
 	// Data: Labels and Series
 	if ( $atts['type'] !== 'Pie') {
 		$script = pompey_chart_data_label_series( $series, $atts );
@@ -138,6 +141,8 @@ function pompey_chart_default_atts( $atts ) {
 	$atts['type'] = pompey_chart_validate_type( $atts['type'] );
 	$atts['tooltips'] = isset( $atts['tooltips']) ? true : false;
 	$atts['stackBars'] = isset( $atts['stackbars']) ? true : false;
+	$atts['horizontalBars'] = isset( $atts['horizontalbars']) ? true : false;
+	$atts['class'] = isset( $atts['class'] ) ? $atts['class'] : 'ct-golden-section';
 	//echo "after";
 	//print_r( $atts );
 	return $atts;
@@ -252,6 +257,11 @@ function pompey_chart_options( $atts, $jsonlegend=null ) {
 		$options->chartPadding->left = 40;
 		$options->plugins='repl_plugins';
 		$options->stackBars = $atts['stackBars'];
+		$options->horizontalBars = $atts['horizontalBars'];
+		if ( $options->horizontalBars ) {
+			$options->reverseData=true;
+		}
+		$options->scaleMinSpace = 80;
 	} else {
 		//$options->donut = true;
 		// $options->donutWidth = 60;
