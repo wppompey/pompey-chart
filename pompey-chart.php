@@ -2,7 +2,7 @@
 /**
  * Plugin Name:     Pompey Chart
  * Plugin URI: 		https://github.com/wppompey/pompey-chart.git
- * Description:     Displays a chart of WordPress Portsmouth Meetup attendees over time
+ * Description:     Displays Charts using Chartist.js
  * Version:         0.2.0
  * Author:          andrewleonard, bobbingwide
  * Author URI: 		https://wp-pompey.org.uk
